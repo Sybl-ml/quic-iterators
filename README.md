@@ -1,8 +1,5 @@
 # QUIC Iterators
 
-Pythia is a Discord bot written in Rust to add functionality to our Discord
-server while providing a way to learn Rust.
-
 QUIC Iterators is an experimental project to send iterable data over a QUIC
 connection. This allows data to be processed on the server before the entire
 set has arrived, providing a more responsive application.
