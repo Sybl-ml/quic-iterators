@@ -1,0 +1,25 @@
+[package]
+name = "quic"
+version = "0.1.0"
+authors = ["Alexander Jackson <alexanderjackson@protonmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "client"
+path = "src/client.rs"
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+quinn = "0.6"
+futures = "0.3"
+rcgen = "0.8"
+directories-next = "1.0.1"
+
+[dependencies.tokio]
+version = "0.2"
+features = ["rt-core", "time", "macros"]
