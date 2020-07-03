@@ -84,10 +84,10 @@ async fn run() -> Result<()> {
             // Allocate a buffer
             let mut buffer = [0 as u8; 1024];
 
-            // Read the first message
-            let size: usize = recv.read(&mut buffer).await?.unwrap();
-            let message: Row = bincode::deserialize(&buffer[..size]).unwrap();
-            println!("Received '{:?}' from the client", message);
+            while let Some(size) = recv.read(&mut buffer).await? {
+                let message: Row = bincode::deserialize(&buffer[..size]).unwrap();
+                println!("Received '{:?}' from the client", message);
+            }
 
             // Respond to the client
             send.write_all(b"Thanks").await?;

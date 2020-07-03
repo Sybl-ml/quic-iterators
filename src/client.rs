@@ -59,6 +59,18 @@ async fn run() -> Result<()> {
     println!("Sending a message to the server");
     let message = bincode::serialize(&row)?;
     send.write_all(&message).await?;
+
+    // Send a message to the server
+    let row = Row {
+        id: 0.7,
+        age: 0.3,
+        blood_pressure: 0.08,
+        resting_heart_rate: 0.4,
+    };
+    println!("Sending a message to the server");
+    let message = bincode::serialize(&row)?;
+    send.write_all(&message).await?;
+
     send.finish().await?;
 
     // Read the response that is sent back
