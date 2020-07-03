@@ -1,10 +1,14 @@
 use std::fs;
-use std::sync::Arc;
+use std::net::{SocketAddr, SocketAddrV4};
 use std::str::FromStr;
-use std::net::{SocketAddrV4, SocketAddr};
+use std::sync::Arc;
 
-use quinn::Endpoint;
 use futures::StreamExt;
+use quinn::Endpoint;
+
+mod row;
+
+use row::Row;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -70,19 +74,23 @@ async fn run() -> Result<()> {
         // Get the stream of bidirectional streams it can create
         let quinn::NewConnection { mut bi_streams, .. } = conn.await?;
 
+        println!("Encountered a new connection");
+
         // For every stream it creates
         while let Some(stream) = bi_streams.next().await {
             // Get the respective channels
-            let (mut send, recv) = stream?;
+            let (mut send, mut recv) = stream?;
 
-            // Read the incoming message
-            let response = recv.read_to_end(usize::max_value()).await?;
-            let text = std::str::from_utf8(&response)?;
-            println!("Received '{}' from the client", text);
+            // Allocate a buffer
+            let mut buffer = [0 as u8; 1024];
+
+            // Read the first message
+            let size: usize = recv.read(&mut buffer).await?.unwrap();
+            let message: Row = bincode::deserialize(&buffer[..size]).unwrap();
+            println!("Received '{:?}' from the client", message);
 
             // Respond to the client
-            println!("Responding to the client");
-            send.write_all(b"World").await?;
+            send.write_all(b"Thanks").await?;
             send.finish().await?;
         }
     }

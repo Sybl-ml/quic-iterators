@@ -1,8 +1,12 @@
 use std::fs;
+use std::net::{SocketAddr, SocketAddrV4};
 use std::str::FromStr;
-use std::net::{SocketAddrV4, SocketAddr};
 
 use quinn::Endpoint;
+
+mod row;
+
+use row::Row;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -46,8 +50,15 @@ async fn run() -> Result<()> {
     let (mut send, recv) = connection.open_bi().await?;
 
     // Send a message to the server
+    let row = Row {
+        id: 0.4,
+        age: 0.5,
+        blood_pressure: 0.03,
+        resting_heart_rate: 0.7,
+    };
     println!("Sending a message to the server");
-    send.write(b"Hello").await?;
+    let message = bincode::serialize(&row)?;
+    send.write_all(&message).await?;
     send.finish().await?;
 
     // Read the response that is sent back
