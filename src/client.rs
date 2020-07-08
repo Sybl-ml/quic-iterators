@@ -45,9 +45,9 @@ async fn run() -> Result<()> {
     let server = SocketAddr::V4(SocketAddrV4::from_str("127.0.0.1:5000")?);
     let new_connection = endpoint.connect(&server, &hostname)?.await?;
 
-    // Get the actual connection and setup bidirectional channels
+    // Get the actual connection and setup a unidirectional channel
     let quinn::NewConnection { connection, .. } = new_connection;
-    let (mut send, _) = connection.open_bi().await?;
+    let mut send = connection.open_uni().await?;
 
     let generator = RowGenerator::new(1000);
 

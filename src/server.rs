@@ -52,7 +52,7 @@ fn get_certificate_chain_and_key() -> Result<(quinn::CertificateChain, quinn::Pr
 async fn run() -> Result<()> {
     // Ban the use of unidirectional streams
     let mut transport_config = quinn::TransportConfig::default();
-    transport_config.stream_window_uni(0);
+    transport_config.stream_window_bidi(0);
 
     // Build the server configuration
     let mut server_config = quinn::ServerConfig::default();
@@ -74,14 +74,16 @@ async fn run() -> Result<()> {
     // For each new incoming connection
     while let Some(conn) = incoming.next().await {
         // Get the stream of bidirectional streams it can create
-        let quinn::NewConnection { mut bi_streams, .. } = conn.await?;
+        let quinn::NewConnection {
+            mut uni_streams, ..
+        } = conn.await?;
 
         println!("Encountered a new connection");
 
         // For every stream it creates
-        while let Some(stream) = bi_streams.next().await {
+        while let Some(stream) = uni_streams.next().await {
             // Get the respective channels
-            let (_, mut recv) = stream?;
+            let mut recv = stream?;
 
             // Allocate a buffer
             let mut buffer = [0 as u8; 1024];
