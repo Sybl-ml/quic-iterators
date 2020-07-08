@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 use std::fs;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::str::FromStr;
@@ -6,10 +5,11 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use quinn::Endpoint;
-use serde::Deserialize;
 
+mod buffer;
 mod row;
 
+use buffer::Buffer;
 use row::Row;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -85,29 +85,20 @@ async fn run() -> Result<()> {
             // Get the respective channels
             let mut recv = stream?;
 
+            let mut buffer: Buffer<Row> = Buffer::new();
+
             // Allocate a buffer
-            let mut buffer = [0 as u8; 1024];
-            let mut all_elements = Vec::new();
+            let mut arr = [0 as u8; 1024];
 
-            while let Some(size) = recv.read(&mut buffer).await? {
-                all_elements.extend_from_slice(&buffer[..size]);
+            while let Some(size) = recv.read(&mut arr).await? {
+                buffer.extend_from_slice(&arr[..size]);
+
+                for row in &mut buffer {
+                    println!("Received '{:?}' from the client", row);
+                }
             }
-
-            parse_buffer::<Row>(&all_elements);
         }
     }
 
     Ok(())
-}
-
-fn parse_buffer<'a, T: Deserialize<'a> + Debug>(buffer: &'a [u8]) {
-    let block_size = std::mem::size_of::<T>();
-    let item_count = buffer.len() / block_size;
-
-    for i in 0..item_count {
-        let low = i * block_size;
-        let high = low + block_size;
-        let message: T = bincode::deserialize(&buffer[low..high]).unwrap();
-        println!("Received '{:?}' from the client", message);
-    }
 }
