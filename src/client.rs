@@ -6,7 +6,7 @@ use quinn::Endpoint;
 
 mod row;
 
-use row::Row;
+use row::RowGenerator;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -47,27 +47,16 @@ async fn run() -> Result<()> {
 
     // Get the actual connection and setup bidirectional channels
     let quinn::NewConnection { connection, .. } = new_connection;
-    let (mut send, recv) = connection.open_bi().await?;
+    let (mut send, _) = connection.open_bi().await?;
 
-    // Send a message to the server
-    let row = Row {
-        id: 0.4,
-        age: 0.5,
-        blood_pressure: 0.03,
-        resting_heart_rate: 0.7,
-    };
-    println!("Sending a message to the server");
-    let message = bincode::serialize(&row)?;
-    send.write_all(&message).await?;
+    let generator = RowGenerator::new(1000);
+
+    for row in generator {
+        let message = bincode::serialize(&row)?;
+        send.write_all(&message).await?;
+    }
+
     send.finish().await?;
-
-    // Read the response that is sent back
-    let response = recv.read_to_end(usize::max_value()).await?;
-    let text = std::str::from_utf8(&response)?;
-    println!("Received '{}' from the server.", text);
-
-    // Close the connection to the server
-    connection.close(0u32.into(), b"Communication finished.");
 
     Ok(())
 }

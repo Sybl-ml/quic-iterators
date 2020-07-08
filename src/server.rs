@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::str::FromStr;
@@ -5,6 +6,7 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use quinn::Endpoint;
+use serde::Deserialize;
 
 mod row;
 
@@ -79,21 +81,31 @@ async fn run() -> Result<()> {
         // For every stream it creates
         while let Some(stream) = bi_streams.next().await {
             // Get the respective channels
-            let (mut send, mut recv) = stream?;
+            let (_, mut recv) = stream?;
 
             // Allocate a buffer
             let mut buffer = [0 as u8; 1024];
+            let mut all_elements = Vec::new();
 
-            // Read the first message
-            let size: usize = recv.read(&mut buffer).await?.unwrap();
-            let message: Row = bincode::deserialize(&buffer[..size]).unwrap();
-            println!("Received '{:?}' from the client", message);
+            while let Some(size) = recv.read(&mut buffer).await? {
+                all_elements.extend_from_slice(&buffer[..size]);
+            }
 
-            // Respond to the client
-            send.write_all(b"Thanks").await?;
-            send.finish().await?;
+            parse_buffer::<Row>(&all_elements);
         }
     }
 
     Ok(())
+}
+
+fn parse_buffer<'a, T: Deserialize<'a> + Debug>(buffer: &'a [u8]) {
+    let block_size = std::mem::size_of::<T>();
+    let item_count = buffer.len() / block_size;
+
+    for i in 0..item_count {
+        let low = i * block_size;
+        let high = low + block_size;
+        let message: T = bincode::deserialize(&buffer[low..high]).unwrap();
+        println!("Received '{:?}' from the client", message);
+    }
 }
