@@ -17,7 +17,7 @@ impl<T> Buffer<T> {
     }
 
     pub fn extend_from_slice(&mut self, slice: &[u8]) {
-        self.data.extend(slice.into_iter());
+        self.data.extend(slice.iter());
     }
 }
 
